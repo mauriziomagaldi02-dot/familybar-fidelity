@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
   const [cardNumber, setCardNumber] = useState("");
-  const [phone, setPhone] = useState("");
+  const [surname, setSurname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +19,7 @@ export default function LoginPage() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardNumber, phone }),
+        body: JSON.stringify({ cardNumber, surname }),
       });
       const data = await res.json();
 
@@ -46,8 +46,8 @@ export default function LoginPage() {
 
         <h1>La tua Fidelity Card</h1>
         <p className="subtitle">
-          Inserisci il numero della tua tessera e il numero di telefono associato per
-          vedere il saldo e i movimenti.
+          Inserisci il numero della tua tessera e il tuo cognome per vedere il
+          saldo e i movimenti.
         </p>
 
         {error && <div className="error">{error}</div>}
@@ -65,15 +65,14 @@ export default function LoginPage() {
             required
           />
 
-          <label htmlFor="phone">Numero di telefono</label>
+          <label htmlFor="surname">Cognome</label>
           <input
-            id="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="Es. 333 1234567"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            id="surname"
+            type="text"
+            autoComplete="family-name"
+            placeholder="Es. Rossi"
+            value={surname}
+            onChange={(e) => setSurname(e.target.value)}
             required
           />
 

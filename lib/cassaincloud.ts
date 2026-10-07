@@ -201,22 +201,37 @@ export async function getPrepaidTransactions(
   return data.fidelityPointsTransaction ?? [];
 }
 
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // rimuove accenti (es. "è" -> "e")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .trim();
+}
+
 /**
- * Flusso completo di login cliente: trova la card, verifica il telefono,
+ * Flusso completo di login cliente: trova la card, verifica il cognome,
  * ritorna i dati identificativi del cliente se tutto corrisponde.
+ *
+ * Su Cassa in Cloud il Customer ha un unico campo "name" (nome e cognome
+ * insieme, es. "Mario Rossi" o "Rossi Mario"), senza un campo separato per
+ * il cognome. Per questo il controllo verifica che il cognome inserito
+ * dal cliente compaia come parola intera all'interno del campo "name"
+ * (confronto case-insensitive, accenti ignorati).
  */
 export async function verifyCustomerLogin(
   cardNumber: string,
-  phone: string
+  surname: string
 ): Promise<{ idCustomer: string; name: string } | null> {
   const card = await findFidelityCardByNumber(cardNumber.trim());
   if (!card || !card.idCustomer) return null;
 
   const customer = await getCustomer(card.idCustomer);
-  const normalizedPhone = phone.replace(/\D/g, "");
-  const customerPhone = (customer.phoneNumber || "").replace(/\D/g, "");
+  const normalizedSurname = normalizeName(surname);
+  const customerNameWords = normalizeName(customer.name || "").split(/\s+/).filter(Boolean);
 
-  if (!customerPhone || !normalizedPhone || customerPhone !== normalizedPhone) {
+  if (!normalizedSurname || !customerNameWords.includes(normalizedSurname)) {
     return null;
   }
 

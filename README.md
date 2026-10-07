@@ -1,15 +1,17 @@
 # Fidelity Card – Family Bar
 
-Webapp per i clienti Family Bar: inserendo numero tessera e telefono, il
+Webapp per i clienti Family Bar: inserendo numero tessera e cognome, il
 cliente vede il saldo della propria fidelity card (Cassa in Cloud),
 aggiornato automaticamente ogni 30 secondi, e i movimenti recenti del
 conto prepagato (ricariche/utilizzi).
 
 ## Come funziona
 
-1. Il cliente apre il sito, inserisce **numero tessera** + **telefono**.
+1. Il cliente apre il sito, inserisce **numero tessera** + **cognome**.
 2. Il server cerca la card su Cassa in Cloud (`GET /fidelitycards?code=...`),
-   recupera il cliente collegato e verifica che il telefono corrisponda.
+   recupera il cliente collegato e verifica che il cognome inserito compaia
+   come parola nel campo `name` del cliente (Cassa in Cloud non ha un campo
+   cognome separato, solo `name` con nome e cognome insieme).
 3. Se corrisponde, crea una sessione (cookie firmato, HttpOnly).
 4. La pagina `/saldo` interroga ogni 30s l'endpoint `/api/fidelity`, che
    chiama Cassa in Cloud per saldo (`fidelityprepaidaccounts`) e movimenti
@@ -92,7 +94,7 @@ npm run dev
 
 ```
 app/
-  page.tsx              -> form di login (tessera + telefono)
+  page.tsx              -> form di login (tessera + cognome)
   saldo/page.tsx         -> saldo + movimenti, si aggiorna da solo
   api/login/route.ts     -> verifica cliente, crea sessione
   api/fidelity/route.ts  -> ritorna saldo/movimenti della sessione
@@ -106,11 +108,12 @@ lib/
 
 - La sessione dura 12 ore ed è in un cookie HttpOnly (non leggibile da
   JavaScript lato client).
-- Il telefono viene confrontato solo per cifre (spazi/prefissi ignorati),
-  ma **deve corrispondere esattamente** a quello salvato su Cassa in Cloud
-  per quel cliente: se un cliente non riesce ad accedere, il problema è
-  quasi sempre un numero di telefono non registrato o registrato in modo
-  diverso (es. con o senza +39) sulla sua scheda cliente.
+- Il cognome viene confrontato in modo case-insensitive e ignorando gli
+  accenti, cercandolo come parola intera nel campo `name` del cliente su
+  Cassa in Cloud (che contiene nome e cognome insieme, es. "Mario Rossi").
+  Se un cliente non riesce ad accedere, il problema è quasi sempre che il
+  campo `name` sulla sua scheda cliente è scritto in modo diverso da come
+  si aspetta (es. un solo nome senza cognome, un soprannome, un refuso).
 - Le API di Cassa in Cloud hanno un limite di 360 chiamate ogni 10 minuti
   **per singola API**: con l'aggiornamento a 30s e 2 chiamate per refresh
   (saldo, movimenti) un singolo cliente che tiene la pagina aperta usa

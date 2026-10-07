@@ -3,7 +3,7 @@ import { verifyCustomerLogin } from "@/lib/cassaincloud";
 import { createSessionToken, SESSION_COOKIE_NAME } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
-  let body: { cardNumber?: string; phone?: string };
+  let body: { cardNumber?: string; surname?: string };
   try {
     body = await req.json();
   } catch {
@@ -11,20 +11,20 @@ export async function POST(req: NextRequest) {
   }
 
   const cardNumber = (body.cardNumber || "").trim();
-  const phone = (body.phone || "").trim();
+  const surname = (body.surname || "").trim();
 
-  if (!cardNumber || !phone) {
+  if (!cardNumber || !surname) {
     return NextResponse.json(
-      { error: "Numero tessera e telefono sono obbligatori." },
+      { error: "Numero tessera e cognome sono obbligatori." },
       { status: 400 }
     );
   }
 
   try {
-    const result = await verifyCustomerLogin(cardNumber, phone);
+    const result = await verifyCustomerLogin(cardNumber, surname);
     if (!result) {
       return NextResponse.json(
-        { error: "Numero tessera o telefono non corretti." },
+        { error: "Numero tessera o cognome non corretti." },
         { status: 401 }
       );
     }
