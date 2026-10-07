@@ -5,6 +5,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 12; // 12 ore
 
 export interface SessionPayload {
   idCustomer: string;
+  idFidelityCard: number;
   name: string;
   exp: number; // epoch ms
 }

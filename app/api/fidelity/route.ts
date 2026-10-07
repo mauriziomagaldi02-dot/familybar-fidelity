@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const [accountsResult, transactionsResult] = await Promise.allSettled([
     getPrepaidAccounts(session.idCustomer),
-    getPrepaidTransactions(session.idCustomer, 20),
+    getPrepaidTransactions(session.idFidelityCard, 20),
   ]);
 
   if (accountsResult.status === "rejected") {

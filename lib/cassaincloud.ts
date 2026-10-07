@@ -194,102 +194,15 @@ export async function getPrepaidAccounts(idCustomer: string): Promise<FidelityPr
 }
 
 /**
- * Funzione diagnostica temporanea: prova diverse varianti della chiamata a
- * /fidelityprepaidtransactions per capire quale configurazione causa
- * l'errore 500 "something went wrong" lato Cassa in Cloud. Da rimuovere
- * una volta risolto il problema.
+ * NOTA: il filtro "idCustomer" su questo endpoint causa un errore 500
+ * lato Cassa in Cloud (bug confermato diagnosticamente il 2026-10-07:
+ * la stessa richiesta senza idCustomer funziona, con idCustomer fallisce
+ * sempre, indipendentemente da sort/limit). Si usa quindi "idFidelityCard"
+ * come filtro al suo posto, che è documentato per lo stesso endpoint e
+ * funziona correttamente.
  */
-export async function debugPrepaidTransactions(idCustomer: string) {
-  const token = await getAccessToken();
-  const results: Array<{
-    label: string;
-    url: string;
-    status: number;
-    ok: boolean;
-    body: string;
-  }> = [];
-
-  async function tryCall(label: string, path: string, params: Record<string, QueryValue>) {
-    const url = new URL(`${HOSTNAME}${path}`);
-    for (const [key, value] of Object.entries(params)) {
-      if (value === undefined) continue;
-      if (Array.isArray(value)) {
-        for (const v of value) url.searchParams.append(key, String(v));
-      } else {
-        url.searchParams.set(key, String(value));
-      }
-    }
-    try {
-      const res = await fetch(url.toString(), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Version": "1.0.0",
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      });
-      const body = await res.text();
-      results.push({ label, url: url.toString(), status: res.status, ok: res.ok, body: body.slice(0, 300) });
-    } catch (err) {
-      results.push({
-        label,
-        url: url.toString(),
-        status: 0,
-        ok: false,
-        body: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  await tryCall("1. baseline (start,limit,idCustomer)", ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: 20,
-    idCustomer,
-  });
-
-  await tryCall("2. senza idCustomer (solo start,limit)", ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: 5,
-  });
-
-  await tryCall("3. idCustomer come array ripetuto", ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: 20,
-    idCustomer: [idCustomer],
-  });
-
-  await tryCall("4. limit molto piccolo (1)", ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: 1,
-    idCustomer,
-  });
-
-  await tryCall("5. sorts come array di coppie [[campo,direzione]]", ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: 20,
-    idCustomer,
-    sorts: JSON.stringify([["date", -1]]),
-  });
-
-  await tryCall("6. sorts semplice 'date,-1'", ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: 20,
-    idCustomer,
-    sorts: "date,-1",
-  });
-
-  await tryCall("7. endpoint fidelityprepaidaccounts (controllo, deve funzionare)", ENDPOINTS.fidelityPrepaidAccounts, {
-    start: 0,
-    limit: 50,
-    idCustomer,
-  });
-
-  return results;
-}
-
 export async function getPrepaidTransactions(
-  idCustomer: string,
+  idFidelityCard: number,
   limit = 20
 ): Promise<FidelityPrepaidTransaction[]> {
   const data = await apiGet<{
@@ -298,11 +211,7 @@ export async function getPrepaidTransactions(
   }>(ENDPOINTS.fidelityPrepaidTransactions, {
     start: 0,
     limit,
-    idCustomer,
-    // "sorts" temporaneamente rimosso: causava HTTP 500 lato Cassa in Cloud
-    // sia come "-date" che come JSON [{"date":-1}]. Senza sort esplicito,
-    // l'API dovrebbe comunque restituire i movimenti (ordine non garantito,
-    // li ordiniamo lato client se serve). Da indagare separatamente.
+    idFidelityCard: [idFidelityCard],
   });
   return [...(data.fidelityPointsTransaction ?? [])].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -331,7 +240,7 @@ function normalizeName(value: string): string {
 export async function verifyCustomerLogin(
   cardNumber: string,
   surname: string
-): Promise<{ idCustomer: string; name: string } | null> {
+): Promise<{ idCustomer: string; idFidelityCard: number; name: string } | null> {
   const card = await findFidelityCardByNumber(cardNumber.trim());
   if (!card || !card.idCustomer) return null;
 
@@ -343,5 +252,5 @@ export async function verifyCustomerLogin(
     return null;
   }
 
-  return { idCustomer: customer.id, name: customer.name };
+  return { idCustomer: customer.id, idFidelityCard: card.id, name: customer.name };
 }
