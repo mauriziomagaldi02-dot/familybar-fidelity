@@ -211,7 +211,9 @@ export async function getPrepaidTransactions(
   }>(ENDPOINTS.fidelityPrepaidTransactions, {
     start: 0,
     limit,
-    idFidelityCard: [idFidelityCard],
+    // va passato come array JSON (es. "[123]"), non come chiave ripetuta:
+    // l'API risponde altrimenti con HTTP 400 "error.expected.jsarray".
+    idFidelityCard: JSON.stringify([idFidelityCard]),
   });
   return [...(data.fidelityPointsTransaction ?? [])].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
