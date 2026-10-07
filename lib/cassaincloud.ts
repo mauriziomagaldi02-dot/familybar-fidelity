@@ -196,7 +196,9 @@ export async function getPrepaidTransactions(
     start: 0,
     limit,
     idCustomer,
-    sorts: ["-date"], // più recenti prima - formato sort da confermare se non funziona
+    // più recenti prima. Il parametro "sorts" va passato come JSON:
+    // [{"<campo>": -1}] per decrescente, 1 per crescente (confermato dalla doc).
+    sorts: JSON.stringify([{ date: -1 }]),
   });
   return data.fidelityPointsTransaction ?? [];
 }
