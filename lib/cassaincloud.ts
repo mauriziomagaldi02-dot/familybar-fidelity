@@ -204,11 +204,14 @@ export async function getPrepaidTransactions(
     start: 0,
     limit,
     idCustomer,
-    // più recenti prima. Il parametro "sorts" va passato come JSON:
-    // [{"<campo>": -1}] per decrescente, 1 per crescente (confermato dalla doc).
-    sorts: JSON.stringify([{ date: -1 }]),
+    // "sorts" temporaneamente rimosso: causava HTTP 500 lato Cassa in Cloud
+    // sia come "-date" che come JSON [{"date":-1}]. Senza sort esplicito,
+    // l'API dovrebbe comunque restituire i movimenti (ordine non garantito,
+    // li ordiniamo lato client se serve). Da indagare separatamente.
   });
-  return data.fidelityPointsTransaction ?? [];
+  return [...(data.fidelityPointsTransaction ?? [])].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 }
 
 function normalizeName(value: string): string {
