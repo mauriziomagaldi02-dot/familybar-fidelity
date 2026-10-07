@@ -193,6 +193,101 @@ export async function getPrepaidAccounts(idCustomer: string): Promise<FidelityPr
   return data.fidelityPrepaidAccount ?? [];
 }
 
+/**
+ * Funzione diagnostica temporanea: prova diverse varianti della chiamata a
+ * /fidelityprepaidtransactions per capire quale configurazione causa
+ * l'errore 500 "something went wrong" lato Cassa in Cloud. Da rimuovere
+ * una volta risolto il problema.
+ */
+export async function debugPrepaidTransactions(idCustomer: string) {
+  const token = await getAccessToken();
+  const results: Array<{
+    label: string;
+    url: string;
+    status: number;
+    ok: boolean;
+    body: string;
+  }> = [];
+
+  async function tryCall(label: string, path: string, params: Record<string, QueryValue>) {
+    const url = new URL(`${HOSTNAME}${path}`);
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined) continue;
+      if (Array.isArray(value)) {
+        for (const v of value) url.searchParams.append(key, String(v));
+      } else {
+        url.searchParams.set(key, String(value));
+      }
+    }
+    try {
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Version": "1.0.0",
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+      const body = await res.text();
+      results.push({ label, url: url.toString(), status: res.status, ok: res.ok, body: body.slice(0, 300) });
+    } catch (err) {
+      results.push({
+        label,
+        url: url.toString(),
+        status: 0,
+        ok: false,
+        body: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  await tryCall("1. baseline (start,limit,idCustomer)", ENDPOINTS.fidelityPrepaidTransactions, {
+    start: 0,
+    limit: 20,
+    idCustomer,
+  });
+
+  await tryCall("2. senza idCustomer (solo start,limit)", ENDPOINTS.fidelityPrepaidTransactions, {
+    start: 0,
+    limit: 5,
+  });
+
+  await tryCall("3. idCustomer come array ripetuto", ENDPOINTS.fidelityPrepaidTransactions, {
+    start: 0,
+    limit: 20,
+    idCustomer: [idCustomer],
+  });
+
+  await tryCall("4. limit molto piccolo (1)", ENDPOINTS.fidelityPrepaidTransactions, {
+    start: 0,
+    limit: 1,
+    idCustomer,
+  });
+
+  await tryCall("5. sorts come array di coppie [[campo,direzione]]", ENDPOINTS.fidelityPrepaidTransactions, {
+    start: 0,
+    limit: 20,
+    idCustomer,
+    sorts: JSON.stringify([["date", -1]]),
+  });
+
+  await tryCall("6. sorts semplice 'date,-1'", ENDPOINTS.fidelityPrepaidTransactions, {
+    start: 0,
+    limit: 20,
+    idCustomer,
+    sorts: "date,-1",
+  });
+
+  await tryCall("7. endpoint fidelityprepaidaccounts (controllo, deve funzionare)", ENDPOINTS.fidelityPrepaidAccounts, {
+    start: 0,
+    limit: 50,
+    idCustomer,
+  });
+
+  return results;
+}
+
 export async function getPrepaidTransactions(
   idCustomer: string,
   limit = 20
