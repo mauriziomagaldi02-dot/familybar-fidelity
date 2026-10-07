@@ -204,29 +204,44 @@ export async function getPrepaidAccounts(idCustomer: string): Promise<FidelityPr
  * NOTA sul sort: senza il parametro "sorts" (anche questo da verificare
  * nel formato corretto) l'API restituisce i movimenti in un ordine non
  * garantito come "più recente prima" - in pratica sembra crescente per
- * data di inserimento. Per questo si recupera un numero di record molto
- * più alto di quelli da mostrare (FETCH_LIMIT), si ordina per data
+ * data di inserimento. Inoltre il parametro "limit" sembra avere un tetto
+ * massimo lato server (richiedendo 500 si ottenevano comunque solo i
+ * primi ~90-100 in ordine di inserimento). Per questo si pagina
+ * esplicitamente con "start"/"limit" finché non si sono recuperati tutti
+ * i record (fino a un tetto di sicurezza), poi si ordina per data
  * decrescente lato client e si taglia a "limit".
  */
-const FETCH_LIMIT = 500;
+const PAGE_SIZE = 50;
+const MAX_PAGES = 20; // tetto di sicurezza: max 1000 movimenti per card
 
 export async function getPrepaidTransactions(
   idFidelityCard: number,
   limit = 20
 ): Promise<FidelityPrepaidTransaction[]> {
-  const data = await apiGet<{
-    fidelityPointsTransaction: FidelityPrepaidTransaction[];
-    totalCount: number;
-  }>(ENDPOINTS.fidelityPrepaidTransactions, {
-    start: 0,
-    limit: FETCH_LIMIT,
-    // va passato come array JSON (es. "[123]"), non come chiave ripetuta:
-    // l'API risponde altrimenti con HTTP 400 "error.expected.jsarray".
-    idFidelityCard: JSON.stringify([idFidelityCard]),
-  });
-  const sorted = [...(data.fidelityPointsTransaction ?? [])].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const idFidelityCardParam = JSON.stringify([idFidelityCard]);
+  const all: FidelityPrepaidTransaction[] = [];
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const start = page * PAGE_SIZE;
+    const data = await apiGet<{
+      fidelityPointsTransaction: FidelityPrepaidTransaction[];
+      totalCount: number;
+    }>(ENDPOINTS.fidelityPrepaidTransactions, {
+      start,
+      limit: PAGE_SIZE,
+      // va passato come array JSON (es. "[123]"), non come chiave ripetuta:
+      // l'API risponde altrimenti con HTTP 400 "error.expected.jsarray".
+      idFidelityCard: idFidelityCardParam,
+    });
+    const batch = data.fidelityPointsTransaction ?? [];
+    all.push(...batch);
+
+    if (batch.length < PAGE_SIZE || all.length >= data.totalCount) {
+      break;
+    }
+  }
+
+  const sorted = all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   return sorted.slice(0, limit);
 }
 
