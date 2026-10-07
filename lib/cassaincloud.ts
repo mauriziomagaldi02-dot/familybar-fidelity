@@ -97,7 +97,15 @@ async function apiGet<T>(path: string, params: Record<string, QueryValue>): Prom
   });
 
   if (!res.ok) {
-    throw new Error(`Chiamata Cassa in Cloud fallita: ${path} (HTTP ${res.status})`);
+    let bodyText = "";
+    try {
+      bodyText = await res.text();
+    } catch {
+      // ignora, lasciamo bodyText vuoto
+    }
+    throw new Error(
+      `Chiamata Cassa in Cloud fallita: ${path} (HTTP ${res.status}) - URL: ${url.toString()} - Risposta: ${bodyText.slice(0, 500)}`
+    );
   }
 
   return (await res.json()) as T;
