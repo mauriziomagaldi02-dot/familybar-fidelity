@@ -200,7 +200,16 @@ export async function getPrepaidAccounts(idCustomer: string): Promise<FidelityPr
  * sempre, indipendentemente da sort/limit). Si usa quindi "idFidelityCard"
  * come filtro al suo posto, che è documentato per lo stesso endpoint e
  * funziona correttamente.
+ *
+ * NOTA sul sort: senza il parametro "sorts" (anche questo da verificare
+ * nel formato corretto) l'API restituisce i movimenti in un ordine non
+ * garantito come "più recente prima" - in pratica sembra crescente per
+ * data di inserimento. Per questo si recupera un numero di record molto
+ * più alto di quelli da mostrare (FETCH_LIMIT), si ordina per data
+ * decrescente lato client e si taglia a "limit".
  */
+const FETCH_LIMIT = 500;
+
 export async function getPrepaidTransactions(
   idFidelityCard: number,
   limit = 20
@@ -210,14 +219,15 @@ export async function getPrepaidTransactions(
     totalCount: number;
   }>(ENDPOINTS.fidelityPrepaidTransactions, {
     start: 0,
-    limit,
+    limit: FETCH_LIMIT,
     // va passato come array JSON (es. "[123]"), non come chiave ripetuta:
     // l'API risponde altrimenti con HTTP 400 "error.expected.jsarray".
     idFidelityCard: JSON.stringify([idFidelityCard]),
   });
-  return [...(data.fidelityPointsTransaction ?? [])].sort(
+  const sorted = [...(data.fidelityPointsTransaction ?? [])].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+  return sorted.slice(0, limit);
 }
 
 function normalizeName(value: string): string {
