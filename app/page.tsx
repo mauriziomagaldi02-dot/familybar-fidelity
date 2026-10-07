@@ -40,8 +40,8 @@ export default function LoginPage() {
     <div className="page">
       <div className="card">
         <div className="brand">
-          <div className="brand-mark">FB</div>
-          <div className="brand-name">Family Bar</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/familybar-logo.png" alt="Family Bar" className="brand-logo" />
         </div>
 
         <h1>La tua Fidelity Card</h1>
@@ -57,9 +57,10 @@ export default function LoginPage() {
           <input
             id="cardNumber"
             type="text"
-            inputMode="numeric"
+            inputMode="text"
+            autoCapitalize="characters"
             autoComplete="off"
-            placeholder="Es. 000123456"
+            placeholder="Es. 000123456 o ABC123"
             value={cardNumber}
             onChange={(e) => setCardNumber(e.target.value)}
             required

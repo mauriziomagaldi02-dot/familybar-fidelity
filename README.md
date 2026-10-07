@@ -1,9 +1,10 @@
 # Fidelity Card – Family Bar
 
-Webapp per i clienti Family Bar: inserendo numero tessera e cognome, il
-cliente vede il saldo della propria fidelity card (Cassa in Cloud),
-aggiornato automaticamente ogni 30 secondi, e i movimenti recenti del
-conto prepagato (ricariche/utilizzi).
+Webapp per i clienti Family Bar: inserendo numero tessera (numerico o
+alfanumerico) e cognome, il cliente vede il saldo della propria fidelity
+card (Cassa in Cloud), aggiornato automaticamente ogni 30 secondi, i
+movimenti recenti del conto prepagato (ricariche/utilizzi, paginati 10 alla
+volta) e un codice a barre (CODE128) da mostrare in cassa.
 
 ## Come funziona
 

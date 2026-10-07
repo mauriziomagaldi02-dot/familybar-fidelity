@@ -267,7 +267,7 @@ function normalizeName(value: string): string {
 export async function verifyCustomerLogin(
   cardNumber: string,
   surname: string
-): Promise<{ idCustomer: string; idFidelityCard: number; name: string } | null> {
+): Promise<{ idCustomer: string; idFidelityCard: number; cardNumber: string; name: string } | null> {
   const card = await findFidelityCardByNumber(cardNumber.trim());
   if (!card || !card.idCustomer) return null;
 
@@ -279,5 +279,5 @@ export async function verifyCustomerLogin(
     return null;
   }
 
-  return { idCustomer: customer.id, idFidelityCard: card.id, name: customer.name };
+  return { idCustomer: customer.id, idFidelityCard: card.id, cardNumber: card.code, name: customer.name };
 }
