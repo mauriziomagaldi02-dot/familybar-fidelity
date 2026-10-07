@@ -10,31 +10,42 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Sessione scaduta." }, { status: 401 });
   }
 
-  try {
-    const [accounts, rawTransactions] = await Promise.all([
-      getPrepaidAccounts(session.idCustomer),
-      getPrepaidTransactions(session.idCustomer, 20),
-    ]);
+  const [accountsResult, transactionsResult] = await Promise.allSettled([
+    getPrepaidAccounts(session.idCustomer),
+    getPrepaidTransactions(session.idCustomer, 20),
+  ]);
 
-    const totalBalance = accounts.reduce((sum, a) => sum + (a.amount || 0), 0);
+  if (accountsResult.status === "rejected") {
+    console.error("Errore lettura saldo (fidelityprepaidaccounts):", accountsResult.reason);
+  }
+  if (transactionsResult.status === "rejected") {
+    console.error("Errore lettura movimenti (fidelityprepaidtransactions):", transactionsResult.reason);
+  }
 
-    const transactions = rawTransactions.map((tx) => ({
-      id: String(tx.id),
-      date: tx.date,
-      description: describeTransactionType(tx.fidelityPrepaidTransactionType),
-      amount: tx.amount,
-    }));
-
-    return NextResponse.json({
-      name: session.name,
-      balance: totalBalance,
-      transactions,
-    });
-  } catch (err) {
-    console.error("Errore lettura fidelity:", err);
+  if (accountsResult.status === "rejected") {
     return NextResponse.json(
-      { error: "Impossibile recuperare i dati in questo momento." },
+      { error: "Impossibile recuperare il saldo in questo momento." },
       { status: 502 }
     );
   }
+
+  const totalBalance = accountsResult.value.reduce((sum, a) => sum + (a.amount || 0), 0);
+
+  // Se i movimenti falliscono, mostriamo comunque il saldo (che è la cosa
+  // più importante) con una lista movimenti vuota, invece di bloccare tutto.
+  const rawTransactions = transactionsResult.status === "fulfilled" ? transactionsResult.value : [];
+
+  const transactions = rawTransactions.map((tx) => ({
+    id: String(tx.id),
+    date: tx.date,
+    description: describeTransactionType(tx.fidelityPrepaidTransactionType),
+    amount: tx.amount,
+  }));
+
+  return NextResponse.json({
+    name: session.name,
+    balance: totalBalance,
+    transactions,
+    transactionsUnavailable: transactionsResult.status === "rejected",
+  });
 }

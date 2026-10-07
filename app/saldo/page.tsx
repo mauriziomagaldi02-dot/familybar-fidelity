@@ -14,6 +14,7 @@ interface FidelityData {
   name: string;
   balance: number;
   transactions: Transaction[];
+  transactionsUnavailable?: boolean;
 }
 
 const REFRESH_MS = 30_000; // aggiornamento ogni 30s: reale abbastanza per un saldo fidelity senza sforare i limiti di chiamata dell'API
@@ -99,7 +100,9 @@ export default function SaldoPage() {
             </div>
 
             <div className="section-title">Ultimi movimenti</div>
-            {data.transactions.length === 0 ? (
+            {data.transactionsUnavailable ? (
+              <div className="empty-state">Movimenti non disponibili al momento.</div>
+            ) : data.transactions.length === 0 ? (
               <div className="empty-state">Nessun movimento recente.</div>
             ) : (
               <ul className="tx-list">
