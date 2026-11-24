@@ -103,7 +103,7 @@ export default function SaldoPage() {
       <div className="card">
         <div className="brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/familybar-logo.png" alt="Family Bar" className="brand-logo" />
+          <img src="/marturi-logo.svg" alt="Marturi" className="brand-logo" />
         </div>
 
         {error && <div className="error">{error}</div>}

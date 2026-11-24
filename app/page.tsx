@@ -41,7 +41,7 @@ export default function LoginPage() {
       <div className="card">
         <div className="brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/familybar-logo.png" alt="Family Bar" className="brand-logo" />
+          <img src="/marturi-logo.svg" alt="Marturi" className="brand-logo" />
         </div>
 
         <h1>La tua Fidelity Card</h1>
