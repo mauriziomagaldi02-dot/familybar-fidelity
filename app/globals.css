@@ -53,7 +53,7 @@ body {
 
 .brand {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 24px;
 }
 

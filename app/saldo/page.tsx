@@ -118,11 +118,6 @@ export default function SaldoPage() {
               <div className="balance-amount">{formatCurrency(data.balance)}</div>
             </div>
 
-            <div className="live-label">
-              <span className="live-dot" />
-              Aggiornato automaticamente
-            </div>
-
             {data.cardNumber && (
               <div className="barcode-wrap">
                 <svg ref={barcodeRef} />
